@@ -1,6 +1,6 @@
 # OOPD
 
-#Smart Health Project
+# Smart Health Project
 
 ______________________________________________________________________________
 The project relates to design and development of a Smart Healthcare System (SHS) that will allow a
