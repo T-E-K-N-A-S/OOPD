@@ -59,3 +59,7 @@ for demo.
 Bonus: The bonus points will be provided for extra features you add in the system and it will be
 evaluated on case to case basis. For example, some bonus points will be awarded if you
 construct state diagrams also in UML diagrams before deadline 1.
+
+
+# UML
+![UML](uml.jpg)
