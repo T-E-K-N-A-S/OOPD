@@ -2,7 +2,8 @@ import sqlite3
 import os
 import time
 import random
-
+import calendar
+import datetime 
 class DB():
     def __init__(self):
         conn = sqlite3.connect('test.db')
@@ -67,15 +68,15 @@ class Patient:
     def menu(self):
         print('inside user menu')
         while 1:
-            print('\n1 add doctor\n2 rem doctor\n3 add hospital\n4 rem hospital\n0 logout')
+            print('\n1 search doctor\n2 book appt\n3 add hospital\n4 rem hospital\n0 logout')
             c = int(input('>'))
             if c == 0:
                 return
                 #break
             elif c == 1:
-                self.add_doctor()
+                self.search_doctor()
             elif c == 2:
-                self.rem_doctor()
+                self.book_appt()
             elif c == 3:
                 self.add_hospital()
             elif c == 4:
@@ -83,10 +84,64 @@ class Patient:
             else:
                 print("*invalid input*")
 
-    def add_doctor(self):
-        pass
-    def rem_doctor(self):
-        pass
+    def search_doctor(self):
+        dept_list = ['allergy','dental','dermitology','general','orthopedic','cardiology','neurology']
+        department = dept_list[ int(input('select department\n 1:allergy 2:dental 3:dermitology 4:general 5:orthopedic 6:cardiology 7:neurology'))-1]
+        conn = sqlite3.connect('test.db')
+        cursor = conn.execute('SELECT DOCTOR_ID, NAME,EMAIL,CATEGORY,DEPARTMENT from DOCTOR where DEPARTMENT is ?',(department,))
+        output =cursor.fetchall()
+        for row in output:
+            print(row)
+
+        
+
+    def book_appt(self):
+        self.search_doctor()
+        docid = int(input('select doc id to book appt: '))
+
+        conn = sqlite3.connect('test.db')
+        conn.execute('''create table if not exists APPT
+         (APPT_ID    INT     PRIMARY KEY     NOT NULL,
+         PAT_ID           INT    NOT NULL,
+         DOC_ID          INT    NOT NULL,
+         DATE        TEXT,
+         TIME         TEXT);''')
+
+
+        cal = calendar.month(2018,12)
+        print(cal)
+        today = datetime.date.today()
+        apptdate = input('input date for appt (yyyy-mm-dd)')
+        apptdate =apptdate.split('-')
+        d = datetime.date(int(apptdate[0]),int(apptdate[1]),int(apptdate[2]))
+        #apptdate = time.strptime(apptdate, "%Y-%m-%d")
+        appt_list = [x for x in range(10,17)]
+        print(appt_list)
+        
+        #print(d,today)
+        if (d <= today):
+            print('invalid date')
+            return
+        else:
+            cursor = conn.execute('SELECT TIME from APPT where PAT_ID = ? AND DOC_ID = ? AND DATE = ?',(self.patientID,docid,d.strftime('%Y,%m,%d')))
+            output = cursor.fetchall()
+            #for row in output:
+            #    print(row)
+            print(output)
+            output = [i[0] for i in output]
+            if len(output)> 0:
+                for i in appt_list:
+                    if str(i) not in output:
+                        print(i,end=' - ')
+            slot = int(input('select your slot: '))
+            insert_q = '''insert into APPT values (?,?,?,?,?)'''
+            insert_tup = (random.randint(10000,99999),self.patientID,docid,d.strftime('%Y,%m,%d'),slot)
+            conn.execute(insert_q,insert_tup)
+            conn.commit()
+
+
+    
+        
     def add_hospital(self):
         pass
     def rem_hospital(self):
@@ -101,20 +156,23 @@ class Doctor:
     def __init__(self):
         pass
     def get_input(self):
-        self.doctorID = random.randint(10000,99999) # 5 digit uniq id
+        doctorID = random.randint(10000,99999) # 5 digit uniq id
         fname = input('First name: ')
         lname = input('Last name: ')
-        self.name = fname + ' ' + lname
-        self.email = input('Email: ')
-        self.age = input('age: ')
-        self.department = input('department: ')
-        self.category = input('category : ')
-        self.hospital_id = input('hospital id: ')
-        self.password = input('Set Password: ')
+        name = fname + ' ' + lname
+        email = input('Email: ')
+        age = input('age: ')
+        dept_list = ['allergy','dental','dermitology','general','orthopedic','cardiology','neurology']
+        department = dept_list[ int(input('select department\n 1:allergy 2:dental 3:dermitology 4:general 5:orthopedic 6:cardiology 7:neurology'))-1]
+        cat_list = ['junior-residents', 'senior-residents', 'specialists', 'senior-specialists']
+        category = cat_list[ int(input('select category\n 1:junior residents, 2:senior residents, 3:specialists, 4:senior specialists '))-1]
+        hospital_id = input('hospital id: ')
+        password = input('Set Password: ')
+        return doctorID,name,email,age,department,category,hospital_id,password
 
     def create(self):
-        print('inside patient create')
-        self.get_input()
+        print('inside doctor create')
+        
         conn = sqlite3.connect('test.db')
         conn.execute('''create table if not exists DOCTOR
          (DOCTOR_ID    INT     PRIMARY KEY     NOT NULL,
@@ -127,7 +185,7 @@ class Doctor:
          PASSWORD       TEXT);''')
         
         insert_q = '''insert into DOCTOR values (?,?,?,?,?,?,?,?)'''
-        insert_tup = (self.doctorID,self.name,self.email,self.age,self.department,self.category,self.hospital_id,self.password)
+        insert_tup = tuple(self.get_input())
         conn.execute(insert_q,insert_tup)
         conn.commit()
         
@@ -156,7 +214,7 @@ class Doctor:
         
         print('inside user menu')
         while 1:
-            print('\n1 view patient\n2 view history\n3 view schedule\n4 create report\n0 logout')
+            print('\n1 view patient\n2 view history\n3 view schedule\n4 create report\n5 refer patient\n0 logout')
             c = int(input('>'))
             if c == 0:
                 return
@@ -169,6 +227,8 @@ class Doctor:
                 self.view_schedule()
             elif c == 4:
                 self.create_report()
+            elif c == 5:
+                self.refer_patient()   
             else:
                 print("*invalid input*")
         
@@ -177,27 +237,34 @@ class Doctor:
     def view_history(self):
         pass
     def view_schedule(self):
-        pass
+        conn = sqlite3.connect('test.db')
+        cursor = conn.execute('SELECT * from APPT where DOC_ID = ? ',(self.doctorID,))
+        output = cursor.fetchall()
+        for row in output:
+            print(row)
+    #print(output)
     def create_report(self):
+        pass
+    def refer_patient(self):
         pass
 
     
 
-class Admin:
+class Admin(Doctor):
     def __init__(self):
         pass
     def get_input(self):
-        self.doctorID = random.randint(10000,99999) # 5 digit uniq id
+        adminID = random.randint(10000,99999) # 5 digit uniq id
         fname = input('First name: ')
         lname = input('Last name: ')
-        self.name = fname + ' ' + lname
-        self.email = input('Email: ')
-        self.phone = input('phone: ')
-        self.password = input('Set Password: ')
-
+        name = fname + ' ' + lname
+        email = input('Email: ')
+        phone = input('phone: ')
+        password = input('Set Password: ')
+        return adminID,name,email,phone,password
     def create(self):
-        print('inside patient create')
-        self.get_input()
+        print('inside admin create')
+        
         conn = sqlite3.connect('test.db')
         conn.execute('''create table if not exists ADMIN
          (ADMIN_ID    INT     PRIMARY KEY     NOT NULL,
@@ -207,7 +274,7 @@ class Admin:
          PASSWORD       TEXT);''')
         
         insert_q = '''insert into ADMIN values (?,?,?,?,?)'''
-        insert_tup = (self.adminID,self.name,self.email,self.phone,self.password)
+        insert_tup = tuple(self.get_input())
         conn.execute(insert_q,insert_tup)
         conn.commit()
         
@@ -234,32 +301,110 @@ class Admin:
 
     def menu(self):
         
-        print('inside user menu')
+        print('inside admin console')
         while 1:
-            print('\n1 view patient\n2 view history\n3 view schedule\n4 create report\n0 logout')
+            print('\n1 add doctor\n2 rem doctor\n3 view patient\n4 rem patient\n0 logout')
             c = int(input('>'))
             if c == 0:
                 return
                 #break
             elif c == 1:
-                self.view_patient()
+                self.add_doctor()
             elif c == 2:
-                self.view_history()
+                self.rem_doctor()
             elif c == 3:
-                self.view_schedule()
+                self.view_patient()
             elif c == 4:
-                self.create_report()
+                self.rem_patient()
             else:
                 print("*invalid input*")
         
+    def add_doctor(self):
+        print('inside doctor create')
+        
+        conn = sqlite3.connect('test.db')
+        conn.execute('''create table if not exists DOCTOR
+         (DOCTOR_ID    INT     PRIMARY KEY     NOT NULL,
+         NAME           TEXT    NOT NULL,
+         EMAIL          TEXT    NOT NULL,
+         AGE        CHAR(1),
+         DEPARTMENT     TEXT,
+         CATEGORY       TEXT,
+         HOSPITAL_ID     TEXT,
+         PASSWORD       TEXT);''')
+        
+        insert_q = '''insert into DOCTOR values (?,?,?,?,?,?,?,?)'''
+        insert_tup = tuple(super().get_input())
+        conn.execute(insert_q,insert_tup)
+        conn.commit()
+        print ('doctor added to SHS')
+        '''
+        cursor = conn.execute('SELECT * from DOCTOR')
+        output =cursor.fetchall()
+        for row in output:
+            print(row)
+        '''
+    def rem_doctor(self):
+        pass
+        conn = sqlite3.connect('test.db')
+        cursor = conn.execute('SELECT * from DOCTOR')
+        output =cursor.fetchall()
+
+        for row in output:
+            print(row)
+        # var
+        doc_id = input('input doctor id to be removed: ')
+        # get all doc ids
+        cursor = conn.execute('SELECT DOCTOR_ID from DOCTOR')
+        doc_ids =cursor.fetchall()
+        ids = []
+        for di in doc_ids:
+            ids.append(di[0])
+        doc_ids = ids
+        print(doc_ids)
+        if doc_id.isdigit() is False:
+            print('invalid doctor id ')
+        elif int(doc_id) not in doc_ids:
+            print('This doctor id does not exist.')
+        else:
+            cursor = conn.execute('DELETE from DOCTOR WHERE DOCTOR_ID = ?',(int(doc_id),))
+            conn.commit()
+            print('doctor removed from SHS')
+
+        #output =cursor.fetchall()
     def view_patient(self):
-        pass
-    def view_history(self):
-        pass
-    def view_schedule(self):
-        pass
-    def create_report(self):
-        pass
+        conn = sqlite3.connect('test.db')
+        cursor = conn.execute('SELECT * from PATIENT')
+        output =cursor.fetchall()
+        for row in output: # formatiing needed
+            print(row)
+
+    def rem_patient(self):
+        conn = sqlite3.connect('test.db')
+        cursor = conn.execute('SELECT * from PATIENT')
+        output =cursor.fetchall()
+
+        for row in output:
+            print(row)
+        # var
+        pat_id = input('input patient id to be removed: ')
+        # get all doc ids
+        cursor = conn.execute('SELECT PATIENT_ID from PATIENT')
+        pat_ids =cursor.fetchall()
+        ids = []
+        for pi in pat_ids:
+            ids.append(pi[0])
+        pat_ids = ids
+        print(pat_ids)
+        if pat_id.isdigit() is False:
+            print('invalid patient id ')
+        elif int(pat_id) not in pat_ids:
+            print('This patient id does not exist.')
+        else:
+            cursor = conn.execute('DELETE from PATIENT WHERE PATIENT_ID = ?',(int(pat_id),))
+            conn.commit()
+            print('patient removed from SHS')
+
 
 
 
@@ -301,7 +446,7 @@ class Main():
             P = Patient()
                         
             if P.login():
-                time.sleep(2)
+                time.sleep(1)
                 print('\nyou are logged in')
                 os.system('cls')
                 P.menu()
@@ -313,7 +458,7 @@ class Main():
         elif user == 2:
             D = Doctor()
             if D.login():
-                time.sleep(2)
+                time.sleep(1)
                 print('\nyou are logged in')
                 os.system('cls')
                 D.menu()
@@ -325,7 +470,7 @@ class Main():
             A = Admin()
             
             if A.login():
-                time.sleep(2)
+                time.sleep(1)
                 print('\nyou are logged in')
                 os.system('cls')
                 A.menu()
@@ -363,7 +508,7 @@ class Main():
     def logout(self):
         print('you are logged out')
         #self.abort()
-        time.sleep(5)
+        time.sleep(1)
         os.system('cls')
         self.run_this_shit()
         
