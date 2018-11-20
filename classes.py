@@ -68,7 +68,7 @@ class Patient:
     def menu(self):
         print('inside user menu')
         while 1:
-            print('\n1 search doctor\n2 book appt\n3 add hospital\n4 rem hospital\n0 logout')
+            print('\n1 search doctor\n2 book appt\n3 show records\n4 rem hospital\n0 logout')
             c = int(input('>'))
             if c == 0:
                 return
@@ -78,7 +78,7 @@ class Patient:
             elif c == 2:
                 self.book_appt()
             elif c == 3:
-                self.add_hospital()
+                self.show_records()
             elif c == 4:
                 self.rem_hospital()
             else:
@@ -108,7 +108,7 @@ class Patient:
          TIME         TEXT);''')
 
 
-        cal = calendar.month(2018,12)
+        cal = calendar.month(2018,11)
         print(cal)
         today = datetime.date.today()
         apptdate = input('input date for appt (yyyy-mm-dd)')
@@ -116,14 +116,14 @@ class Patient:
         d = datetime.date(int(apptdate[0]),int(apptdate[1]),int(apptdate[2]))
         #apptdate = time.strptime(apptdate, "%Y-%m-%d")
         appt_list = [x for x in range(10,17)]
-        print(appt_list)
+        #print(appt_list)
         
         #print(d,today)
         if (d <= today):
             print('invalid date')
             return
         else:
-            cursor = conn.execute('SELECT TIME from APPT where PAT_ID = ? AND DOC_ID = ? AND DATE = ?',(self.patientID,docid,d.strftime('%Y,%m,%d')))
+            cursor = conn.execute('SELECT TIME from APPT where  DOC_ID = ? AND DATE = ?',(docid,d.strftime('%Y,%m,%d')))
             output = cursor.fetchall()
             #for row in output:
             #    print(row)
@@ -140,15 +140,28 @@ class Patient:
             conn.commit()
 
 
-    
-        
+    def show_records(self):
+        pass
+        conn = sqlite3.connect('test.db')
+        cursor = conn.execute('SELECT DOCTOR_ID,DEPT,REPORT,DRUGS,DATE from RECORD where PATIENT_ID = ? ',(self.patientID,))
+        output = cursor.fetchall()
+        #print('date\t\ttime\tid\tname')
+        for row in output:
+            print ('\n--- RECORD ---')
+            print('Doctor: ',end='\t')
+            cur = conn.execute('SELECT NAME from DOCTOR where DOCTOR_ID = ? ',(row[0],))
+            out = cur.fetchall()
+            print(out[0][0])
+            print('Doctor ID: ',row[0])
+            print('Department: ',row[1])
+            print('Report: ',row[2])
+            print('Drugs: ',row[3])
+            print('Date of report: ',row[4])        
     def add_hospital(self):
         pass
     def rem_hospital(self):
         pass
     
-
-
 
 
 
@@ -214,7 +227,7 @@ class Doctor:
         
         print('inside user menu')
         while 1:
-            print('\n1 view patient\n2 view history\n3 view schedule\n4 create report\n5 refer patient\n0 logout')
+            print('\n1 view patient\n2 show records\n3 view schedule\n4 create report\n5 refer patient\n0 logout')
             c = int(input('>'))
             if c == 0:
                 return
@@ -222,11 +235,11 @@ class Doctor:
             elif c == 1:
                 self.view_patient()
             elif c == 2:
-                self.view_history()
+                self.show_records()
             elif c == 3:
                 self.view_schedule()
             elif c == 4:
-                self.create_report()
+                self.create_record()
             elif c == 5:
                 self.refer_patient()   
             else:
@@ -238,15 +251,80 @@ class Doctor:
         pass
     def view_schedule(self):
         conn = sqlite3.connect('test.db')
-        cursor = conn.execute('SELECT * from APPT where DOC_ID = ? ',(self.doctorID,))
+        cursor = conn.execute('SELECT PAT_ID,DATE,TIME from APPT where DOC_ID = ? ',(self.doctorID,))
         output = cursor.fetchall()
+        print('date\t\ttime\tid\tname')
         for row in output:
-            print(row)
+            print (row[1],'\t',row[2],'\t',row[0],end='\t')
+            cur = conn.execute('SELECT NAME from PATIENT where PATIENT_ID = ? ',(row[0],))
+            out = cur.fetchall()
+            print(out[0][0])
     #print(output)
+
     def create_report(self):
+        rep = input('\nwrite patient report within 500 chrs: \t')
+        return rep
+
+    def pres_drugs(self):
+        drugs = input('\nprescribe drugs: \t')
+        return drugs
+
+    def create_record(self):
         pass
+        self.view_schedule()
+        patid = int(input('select patient id: '))
+        conn = sqlite3.connect('test.db')
+        conn.execute('''create table if not exists RECORD
+         (DOCTOR_ID    INT     PRIMARY KEY     NOT NULL,
+         PATIENT_ID    INT    NOT NULL,
+         DEPT          TEXT    NOT NULL,
+         REPORT        CHAR(500),
+         DRUGS      TEXT,
+         DATE     TEXT,
+         HIST_ID       TEXT);''')
+        
+        insert_q = '''insert into RECORD values (?,?,?,?,?,?,?)'''
+        insert_tup = (self.doctorID,patid,self.department,self.create_report(),self.pres_drugs(),datetime.date.today().strftime('%Y,%m,%d'),random.randint(10000,99999))
+        conn.execute(insert_q,insert_tup)
+        conn.commit()
+
     def refer_patient(self):
         pass
+        if self.category == 'senior-residents':
+            print('you are senior doctor you cannot refer patients, do not run away from your responsibility')
+        else:
+            print('\nREFER to SENIOR DOCTOR\n')
+            self.show_records()
+            patid = int(input('select patient id to be refered: '))
+
+            print('\nList of senior doctors\n')
+            conn = sqlite3.connect('test.db')
+            cursor = conn.execute('SELECT PATIENT_ID,NAME,DEPT  from DOCTOR where CATEGORY = ? AND DEPARTMENT = ? ',(self.category,self.department))
+            output = cursor.fetchall()
+            for o in output:
+                print(o)
+
+            
+        
+
+
+    def show_records(self):
+        pass
+        conn = sqlite3.connect('test.db')
+        cursor = conn.execute('SELECT PATIENT_ID,DEPT,REPORT,DRUGS,DATE from RECORD where DOCTOR_ID = ? ',(self.doctorID,))
+        output = cursor.fetchall()
+        #print('date\t\ttime\tid\tname')
+        for row in output:
+            print ('\n--- RECORD ---')
+            print('Patient name: ',end='\t')
+            cur = conn.execute('SELECT NAME from PATIENT where PATIENT_ID = ? ',(row[0],))
+            out = cur.fetchall()
+            print(out[0][0])
+            print('Patient ID: ',row[0])
+            print('Department: ',row[1])
+            print('Report: ',row[2])
+            print('Drugs: ',row[3])
+            print('Date of report: ',row[4])        
 
     
 
