@@ -68,7 +68,7 @@ class Patient:
     def menu(self):
         print('inside user menu')
         while 1:
-            print('\n1 search doctor\n2 book appt\n3 show records\n4 rem hospital\n0 logout')
+            print('\n1 search doctor\n2 book appt\n3 show records\n4 show_local\n0 logout')
             c = int(input('>'))
             if c == 0:
                 return
@@ -80,7 +80,7 @@ class Patient:
             elif c == 3:
                 self.show_records()
             elif c == 4:
-                self.rem_hospital()
+                self.show_local()
             else:
                 print("*invalid input*")
 
@@ -156,14 +156,29 @@ class Patient:
             print('Department: ',row[1])
             print('Report: ',row[2])
             print('Drugs: ',row[3])
-            print('Date of report: ',row[4])        
-    def add_hospital(self):
-        pass
-    def rem_hospital(self):
-        pass
+            print('Date of report: ',row[4])
     
 
+    def show_local(self):
+        conn = sqlite3.connect('test.db')
+        cursor = conn.execute('SELECT LOCAL_ID,DOCTOR_ID,ROOM,BED,ADMIT_DATE,DISCHARGE_DATE from LOCAL where PATIENT_ID = ? ',(self.patientID,))
+        output = cursor.fetchall()
+        print('localid\tdoctorid\troom\tbed\tadmit date\tdischarge date')
+        for row in output:
+            for r in row:
+                print(r,end = '\t')
+    
 
+'''
+
+
+
+D   O   C   T   O   R
+
+
+
+
+'''
 
 class Doctor:
     def __init__(self):
@@ -191,7 +206,7 @@ class Doctor:
          (DOCTOR_ID    INT     PRIMARY KEY     NOT NULL,
          NAME           TEXT    NOT NULL,
          EMAIL          TEXT    NOT NULL,
-         AGE        CHAR(1),
+         AGE        CHAR(10),
          DEPARTMENT     TEXT,
          CATEGORY       TEXT,
          HOSPITAL_ID     TEXT,
@@ -227,7 +242,7 @@ class Doctor:
         
         print('inside user menu')
         while 1:
-            print('\n1 view patient\n2 show records\n3 view schedule\n4 create report\n5 refer patient\n0 logout')
+            print('\n1 view patient\n2 show records\n3 view schedule\n4 create report\n5 refer patient local\n6 shift patient to local\n7 show local\n8 refer patient opd\n0 logout')
             c = int(input('>'))
             if c == 0:
                 return
@@ -241,7 +256,13 @@ class Doctor:
             elif c == 4:
                 self.create_record()
             elif c == 5:
-                self.refer_patient()   
+                self.refer_patient_local()   
+            elif c == 6:
+                self.shift_patient_to_local()
+            elif c == 7:
+                self.show_local()   
+            elif c == 8:
+                self.refer_patient_opd()  
             else:
                 print("*invalid input*")
         
@@ -288,22 +309,58 @@ class Doctor:
         conn.execute(insert_q,insert_tup)
         conn.commit()
 
-    def refer_patient(self):
+    def refer_patient_local(self):
         pass
         if self.category == 'senior-residents':
             print('you are senior doctor you cannot refer patients, do not run away from your responsibility')
         else:
             print('\nREFER to SENIOR DOCTOR\n')
-            self.show_records()
+            self.show_local()
             patid = int(input('select patient id to be refered: '))
 
             print('\nList of senior doctors\n')
             conn = sqlite3.connect('test.db')
-            cursor = conn.execute('SELECT PATIENT_ID,NAME,DEPT  from DOCTOR where CATEGORY = ? AND DEPARTMENT = ? ',(self.category,self.department))
+            cursor = conn.execute('SELECT DOCTOR_ID,NAME,DEPT,CATEGORY  from DOCTOR where CATEGORY = ? AND DEPARTMENT = ? ',(self.category,self.department))
             output = cursor.fetchall()
             for o in output:
                 print(o)
 
+            docid = int(input('select senior doc: '))
+            cursor = conn.execute('UPDATE LOCAL SET DOCTOR_ID = ? where PATIENT_ID = ? ',(docid,patid))
+            conn.commit()
+            print('patient transfered to doc id:',docid)
+
+    def refer_patient_opd(self):
+        pass
+        if self.category == 'senior-residents':
+            print('you are senior doctor you cannot refer patients, do not run away from your responsibility')
+        else:
+            print('\nREFER to SENIOR DOCTOR\n')
+            self.view_schedule()
+            patid = int(input('select patient id to be refered: '))
+            date = input('date yyyy-mm-dd')
+            print('\nList of senior doctors\n')
+            conn = sqlite3.connect('test.db')
+            cursor = conn.execute('SELECT DOCTOR_ID,NAME,DEPARTMENT,CATEGORY  from DOCTOR where CATEGORY = ? AND DEPARTMENT = ? ',('senior-residents',self.department))
+            output = cursor.fetchall()
+            for o in output:
+                print(o)
+
+            docid = int(input('select senior doc: '))
+            cursor = conn.execute('UPDATE APPT SET DOC_ID = ? where PAT_ID = ? ',(docid,patid))
+            conn.commit()
+            print('patient transfered to doc id:',docid)
+
+
+    def show_local(self):
+        conn = sqlite3.connect('test.db')
+        cursor = conn.execute('SELECT LOCAL_ID,PATIENT_ID,ROOM,BED,ADMIT_DATE,DISCHARGE_DATE from LOCAL where DOCTOR_ID = ? ',(self.doctorID,))
+        output = cursor.fetchall()
+        print('localid\patientId\troom\tbed\tadmit date\tdischarge date')
+        for row in output:
+            for r in row:
+                print(r,end = '\t')
+            print('\n')
             
         
 
@@ -324,9 +381,48 @@ class Doctor:
             print('Department: ',row[1])
             print('Report: ',row[2])
             print('Drugs: ',row[3])
-            print('Date of report: ',row[4])        
+            print('Date of report: ',row[4])
 
-    
+    def shift_patient_to_local(self):
+        pass
+        self.show_records()
+        patid = int(input('select patient to be moved to LOCAL'))
+        conn = sqlite3.connect('test.db')
+        conn.execute('''create table if not exists LOCAL
+         (PATIENT_ID    INT     PRIMARY KEY     NOT NULL,
+         DOCTOR_ID           INT        NOT NULL,
+         LOCAL_ID          INT    NOT NULL,
+         ROOM        INT,
+         BED     INT,
+         ADMIT_DATE     TEXT,
+         DISCHARGE_DATE    TEXT);''')
+        
+        room = int(input('insert room'))
+        bed = int(input('insert bed'))
+        admit_date = input('admit date in yyyy-mm-dd')
+        discharge_date = input('discharge date in yyyy-mm-dd')
+        insert_q = '''insert into LOCAL values (?,?,?,?,?,?,?)'''
+        insert_tup = (patid,self.doctorID,random.randint(10000,99999),room,bed,admit_date,discharge_date)
+        conn.execute(insert_q,insert_tup)
+        conn.commit()
+
+
+'''
+
+
+
+
+
+A   D   M   I   N
+
+
+
+
+
+
+
+
+'''
 
 class Admin(Doctor):
     def __init__(self):
@@ -455,7 +551,9 @@ class Admin(Doctor):
         cursor = conn.execute('SELECT * from PATIENT')
         output =cursor.fetchall()
         for row in output: # formatiing needed
-            print(row)
+            for r in row:
+                print(r,end = '\t')
+            print('\n')
 
     def rem_patient(self):
         conn = sqlite3.connect('test.db')
@@ -483,7 +581,21 @@ class Admin(Doctor):
             conn.commit()
             print('patient removed from SHS')
 
+'''
 
+
+
+
+
+
+M   A   I   N
+
+
+
+
+
+
+'''
 
 
 
