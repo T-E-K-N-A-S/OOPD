@@ -10,7 +10,14 @@ class DB():
         print(conn)
         #super DB, self).__init__(*args))    
 
-class Patient:
+class writer:
+    def __init__(self):
+        self.file = 'logfile.txt'
+    def error(self,string):
+        f = open(self.file,'a')
+        f.write(datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")+ '\t'+string)
+    
+class Patient(writer):
     def __init__(self):
         pass
     def create(self):
@@ -69,7 +76,11 @@ class Patient:
         print('inside user menu')
         while 1:
             print('\n1 search doctor\n2 book appt\n3 show records\n4 show_local\n0 logout')
-            c = int(input('>'))
+            try:
+                c = int(input('>'))
+            except:
+                print('input error')
+                writer().error('input error from patient menu')            
             if c == 0:
                 return
                 #break
@@ -240,10 +251,16 @@ class Doctor:
 
     def menu(self):
         
-        print('inside user menu')
+        print('inside patient menu')
         while 1:
             print('\n1 view patient\n2 show records\n3 view schedule\n4 create report\n5 refer patient local\n6 shift patient to local\n7 show local\n8 refer patient opd\n0 logout')
-            c = int(input('>'))
+            try:
+                c = int(input('>'))
+            except:
+                print('invalid input')
+                writer().error('input error from menu')
+
+                return
             if c == 0:
                 return
                 #break
@@ -293,7 +310,11 @@ class Doctor:
     def create_record(self):
         pass
         self.view_schedule()
-        patid = int(input('select patient id: '))
+        try:
+            patid = int(input('select patient id: '))
+        except:
+            print('invalid input')
+            return
         conn = sqlite3.connect('test.db')
         conn.execute('''create table if not exists RECORD
          (DOCTOR_ID    INT     PRIMARY KEY     NOT NULL,
@@ -316,7 +337,10 @@ class Doctor:
         else:
             print('\nREFER to SENIOR DOCTOR\n')
             self.show_local()
-            patid = int(input('select patient id to be refered: '))
+            try:
+                patid = int(input('select patient id to be refered: '))
+            except:
+                print('iinvalid input')
 
             print('\nList of senior doctors\n')
             conn = sqlite3.connect('test.db')
@@ -325,7 +349,10 @@ class Doctor:
             for o in output:
                 print(o)
 
-            docid = int(input('select senior doc: '))
+            try:
+                docid = int(input('select senior doc: '))
+            except:
+                print('iinvalid input')
             cursor = conn.execute('UPDATE LOCAL SET DOCTOR_ID = ? where PATIENT_ID = ? ',(docid,patid))
             conn.commit()
             print('patient transfered to doc id:',docid)
@@ -337,7 +364,10 @@ class Doctor:
         else:
             print('\nREFER to SENIOR DOCTOR\n')
             self.view_schedule()
-            patid = int(input('select patient id to be refered: '))
+            try:
+                patid = int(input('select patient id to be refered: '))
+            except:
+                print('iinvalid input')
             date = input('date yyyy-mm-dd')
             print('\nList of senior doctors\n')
             conn = sqlite3.connect('test.db')
@@ -346,7 +376,10 @@ class Doctor:
             for o in output:
                 print(o)
 
-            docid = int(input('select senior doc: '))
+            try:
+                docid = int(input('select senior doc: '))
+            except:
+                print('iinvalid input')
             cursor = conn.execute('UPDATE APPT SET DOC_ID = ? where PAT_ID = ? ',(docid,patid))
             conn.commit()
             print('patient transfered to doc id:',docid)
@@ -386,7 +419,10 @@ class Doctor:
     def shift_patient_to_local(self):
         pass
         self.show_records()
-        patid = int(input('select patient to be moved to LOCAL'))
+        try:
+            patid = int(input('select patient to be moved to LOCAL'))
+        except:
+                print('iinvalid input')
         conn = sqlite3.connect('test.db')
         conn.execute('''create table if not exists LOCAL
          (PATIENT_ID    INT     PRIMARY KEY     NOT NULL,
@@ -478,7 +514,11 @@ class Admin(Doctor):
         print('inside admin console')
         while 1:
             print('\n1 add doctor\n2 rem doctor\n3 view patient\n4 rem patient\n0 logout')
-            c = int(input('>'))
+            try:
+                c = int(input('>'))
+            except:
+                print('iinvalid input')
+                return
             if c == 0:
                 return
                 #break
@@ -610,7 +650,11 @@ class Main():
     def run_this_shit(self):
         while 1:
             print('Main menu\nselect option\n 1 user\n 2 doc\n 3 admin\n 0 exit')
-            choice = int(input('> '))
+            try:
+                choice = int(input('> '))
+            except:
+                print('iinvalid input')
+                return
             if choice == 0: 
                 self.abort()
                 break
@@ -618,7 +662,10 @@ class Main():
             else:
                 while 1:
                     print('\n1. Login\n2. Register\n0. back')
-                    log_reg = int(input('> '))
+                    try:
+                        log_reg = int(input('> '))
+                    except:
+                        print('iinvalid input')
                     if log_reg == 0: #back option
                         break
                     elif log_reg == 1: # login
