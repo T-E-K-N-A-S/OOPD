@@ -16,7 +16,7 @@ so that it is easy to identify the category or department in which a patient is 
 3. When a patient registers, an option of “location” is provided. The “location” can be OPD or
 LOCAL. OPD means that a patient needs a consultation in the hospital. LOCAL means the patient
 needs to be hospitalized in the hospital.
-4. Either a patient has an option to select a doctor ~~or the SHS will allocate the doctor to patient. In
+4. Either a patient has an option to select a doctor ~~or the SHS will allocate the doctor to patient. In~~
 ~~case of SHS allocating the doctor, one should add an intelligent algorithm for such matching~~
 5. SHS will maintain the details about all the doctors in the hospital. The doctors are divided into
 junior residents, senior residents, specialists and senior specialists. ~~Each department/category is
