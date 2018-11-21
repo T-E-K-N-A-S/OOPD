@@ -65,7 +65,7 @@ construct state diagrams also in UML diagrams before deadline 1.
 ![UML](uml.jpg)
 
 # Basic Sequence Diagram
-![Basic Sequence Diagram]("BasicSequenceDiagram.jpeg")
+![Basic Sequence Diagram](BasicSequenceDiagram.jpeg)
 
 # Basic State Diagram
-![Basic State Diagram]("BasicStateDiagram.jpeg")
+![Basic State Diagram](BasicStateDiagram.jpeg)
